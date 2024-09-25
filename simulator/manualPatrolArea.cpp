@@ -1,0 +1,1 @@
+//This function is to manually draw patrol area and obstacle area
