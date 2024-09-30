@@ -1,4 +1,5 @@
 //Define all the topic names that are required for topological mapping
+// test
 #include "rclcpp/rclcpp.hpp"
 #include "topology_map_creator/msg/area2_d.hpp"
 
@@ -29,6 +30,7 @@ private:
 
   rclcpp::Subscription<topology_map_creator::msg::Area2D>::SharedPtr patrol_area_subscription_;
   rclcpp::Subscription<topology_map_creator::msg::Area2D>::SharedPtr obstacle_area_subscription_;
+  
 };
 
 int main(int argc, char *argv[])
