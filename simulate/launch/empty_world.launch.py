@@ -1,34 +1,62 @@
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.actions import ExecuteProcess, GroupAction
-from launch.substitutions import LaunchConfiguration
-from launch_ros.substitutions import FindPackageShare
 import os
 
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+
+
 def generate_launch_description():
-    # World file path
-    world_file = '/home/tianfu/patrol_ws/src/patrol_swarm/simulate/world/empty.world'
+    launch_file_dir = os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'launch')
+    pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
 
-    # Define namespaces for each robot
-    namespaces = ['robot1', 'robot2', 'robot3']
+    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    x_pose = LaunchConfiguration('x_pose', default='-2.0')
+    y_pose = LaunchConfiguration('y_pose', default='-0.5')
 
-    # Create a list to hold the robot spawn commands
-    spawn_robots = []
+    # 修改这里的路径
+    world = os.path.join(
+        '/home/tianfu/patrol_ws/src/patrol_swarm/simulate/world',
+        'empty.world'
+    )
 
-    for ns in namespaces:
-        spawn_robots.append(
-            GroupAction([
-                ExecuteProcess(
-                    cmd=['gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', world_file],
-                    output='screen'
-                ),
-                Node(
-                    package='gazebo_ros',
-                    executable='spawn_entity.py',
-                    arguments=['-entity', ns, '-file', os.path.join(FindPackageShare('turtlebot4_description').find('turtlebot4_description'), 'urdf', 'turtlebot4.urdf'), '-robot_namespace', ns],
-                    output='screen'
-                )
-            ])
+    gzserver_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_gazebo_ros, 'launch', 'gzserver.launch.py')
+        ),
+        launch_arguments={'world': world}.items()
+    )
+
+    gzclient_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_gazebo_ros, 'launch', 'gzclient.launch.py')
         )
+    )
 
-    return LaunchDescription(spawn_robots)
+    robot_state_publisher_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(launch_file_dir, 'robot_state_publisher.launch.py')
+        ),
+        launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
+
+    spawn_turtlebot_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(launch_file_dir, 'spawn_turtlebot3.launch.py')
+        ),
+        launch_arguments={
+            'x_pose': x_pose,
+            'y_pose': y_pose
+        }.items()
+    )
+
+    ld = LaunchDescription()
+
+    # Add the commands to the launch description
+    ld.add_action(gzserver_cmd)
+    ld.add_action(gzclient_cmd)
+    ld.add_action(robot_state_publisher_cmd)
+    ld.add_action(spawn_turtlebot_cmd)
+
+    return ld
