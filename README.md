@@ -1,2 +1,2 @@
 # patrol_swarm
-This project implements an algorithm of swarm robots patrol. It enables multiple robots to work together to cover designated patrol areas, ensuring efficient and comprehensive monitoring. Implemented by ROS2.
+A ROS 2 package for swarm robots patrolling. The space is divided into patrol and obstacle areas, with the patrol area represented as a topological graph. Robots move between graph nodes to patrol. They communicate within a certain range, interact, and reassign patrol areas.

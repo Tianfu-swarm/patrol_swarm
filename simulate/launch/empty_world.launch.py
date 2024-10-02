@@ -1,5 +1,4 @@
-import os
-
+import os 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
@@ -15,7 +14,7 @@ def generate_launch_description():
     x_pose = LaunchConfiguration('x_pose', default='-2.0')
     y_pose = LaunchConfiguration('y_pose', default='-0.5')
 
-    # 修改这里的路径
+   
     world = os.path.join(
         '/home/tianfu/patrol_ws/src/patrol_swarm/simulate/world',
         'empty.world'
