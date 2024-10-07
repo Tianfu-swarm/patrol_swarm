@@ -10,7 +10,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     # 定义机器人的模型和数量
-    turtlebot3_model_value = 'burger'
+    turtlebot3_model_value = 'waffle_pi'  ## 'burger' 'waffle'  'waffle_pi'
     robot_count_value = 10  # 设置要生成的机器人数量
     use_sim_time_value = 'true'  # 使用仿真时间
 
