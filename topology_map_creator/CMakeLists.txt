@@ -12,6 +12,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # Declare the message files
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Area2D.msg"
+  "msg/Matrix.msg"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

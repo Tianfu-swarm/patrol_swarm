@@ -6,7 +6,7 @@ def generate_launch_description():
         Node(
             package='topology_map_creator',  
             executable='topology_map_node',  
-            name='topology_map',
+            name='topology_mapping',
             output='screen'
         )
     ])
