@@ -26,6 +26,11 @@ ament_target_dependencies(topology_map_node
   rosidl_default_runtime
 )
 
+# Install launch 
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
 # Link message type support libraries
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
 target_link_libraries(topology_map_node "${cpp_typesupport_target}")
