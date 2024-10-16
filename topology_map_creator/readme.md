@@ -11,3 +11,9 @@ ros2 topic pub /patrolArea topology_map_creator/msg/Area2D "{header: {stamp: {se
 ```
 
 To publish the `obstacleArea` message, adjust the command as necessary (not specified here, but can follow a similar format).
+
+### start
+To run the code:
+```bash
+ros2 launch topology_map_creator run.launch.py
+```
