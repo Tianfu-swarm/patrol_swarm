@@ -1,4 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
+#include <visualization_msgs/msg/marker.hpp>
 #include "topology_map_creator/msg/area2_d.hpp"
 #include "topology_map_creator/msg/matrix.hpp"
 #include "topology_map_creator/msg/obstacle.hpp"
@@ -14,10 +15,20 @@ public:
     obstacle_area_subscription_ = this->create_subscription<topology_map_creator::msg::Obstacle>(
         "/obstacleArea", 10, std::bind(&TopologyMap::obstacleAreaCallback, this, std::placeholders::_1));
 
-    topology_map_matrix_ = this->create_publisher<topology_map_creator::msg::Matrix>("/topoMapMatrix", 10);
+    topology_map_matrix_ = this->create_publisher<topology_map_creator::msg::Matrix>("/topology_graph_matrix", 10);
+
+    topology_map_vertex_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/topology_map_vertex", 10);
+
+    topology_map_edge_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/topology_map_edge", 10);
 
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(10), std::bind(&TopologyMap::processAndPublish, this));
+
+    void processAndPublish(); // main loop
+
+    void processPatrolArea(); // Converting map information and obstacle information into patrol messages
+
+    void visualize_topology(); // Take the topological graph matrix, convert it to vertexs and edges and visualize it
   }
 
 private:
@@ -25,6 +36,7 @@ private:
   std::vector<topology_map_creator::msg::Area2D::SharedPtr> map_area_msgs_;
   std::vector<topology_map_creator::msg::Obstacle::SharedPtr> obstacle_area_msgs_;
   std::vector<topology_map_creator::msg::Area2D::SharedPtr> patrol_area_msgs_;
+  topology_map_creator::msg::Matrix::SharedPtr topology_graph_matrix_;
 
   void mapAreaCallback(const topology_map_creator::msg::Area2D::SharedPtr msg)
   {
@@ -46,21 +58,51 @@ private:
     }
   }
 
-  void processAndPublish();
-
-  void processPatrolArea();
-
   rclcpp::Subscription<topology_map_creator::msg::Area2D>::SharedPtr map_area_subscription_;
   rclcpp::Subscription<topology_map_creator::msg::Obstacle>::SharedPtr obstacle_area_subscription_;
   rclcpp::Publisher<topology_map_creator::msg::Matrix>::SharedPtr topology_map_matrix_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr topology_map_vertex_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr topology_map_edge_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
+
+void visualize_topology()
+{
+  if (!topology_graph_matrix_)
+  {
+    RCLCPP_WARN(this->get_logger(), "Topology graph matrix is not initialized!");
+    return;
+  }
+
+  // pub vertex
+  for (size_t i = 0; i < topology_graph_matrix_->position_x.size(); ++i)
+  {
+    visualization_msgs::msg::Marker vertex_marker;
+    vertex_marker.header.frame_id = "map";
+    vertex_marker.header.stamp = this->get_clock()->now();
+    vertex_marker.ns = "vertexs";
+    vertex_marker.id = i;
+    vertex_marker.type = visualization_msgs::msg::Marker::SPHERE;
+    vertex_marker.action = visualization_msgs::msg::Marker::ADD;
+    vertex_marker.pose.position.x = topology_graph_matrix_->position_x[i];
+    vertex_marker.pose.position.y = topology_graph_matrix_->position_y[i];
+    vertex_marker.pose.position.z = 0.0;
+    vertex_marker.scale.x = 0.2;
+    vertex_marker.scale.y = 0.2;
+    vertex_marker.scale.z = 0.2;
+    vertex_marker.color.r = 1.0;
+    vertex_marker.color.g = 0.0;
+    vertex_marker.color.b = 0.0;
+    vertex_marker.color.a = 1.0;
+
+    topology_map_vertex_pub_->publish(vertex_marker);
+  }
+}
 
 void TopologyMap::processPatrolArea()
 {
   if (!map_area_msgs_.empty())
   { // The area of the mapArea
-  
   }
 
   if (!obstacle_area_msgs_.empty())

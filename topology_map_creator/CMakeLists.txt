@@ -5,6 +5,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -25,6 +26,7 @@ ament_target_dependencies(topology_map_node
   rclcpp
   std_msgs
   geometry_msgs
+  visualization_msgs
   rosidl_default_runtime
 )
 
