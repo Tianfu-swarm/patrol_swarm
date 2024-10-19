@@ -8,5 +8,12 @@ def generate_launch_description():
             executable='topology_map_node',  
             name='topology_mapping',
             output='screen'
+        ),
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', 'run.rviz']  
         )
     ])

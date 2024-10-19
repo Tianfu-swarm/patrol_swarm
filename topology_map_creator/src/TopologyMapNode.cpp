@@ -56,6 +56,8 @@ private:
   // main loop
   void processAndPublish()
   {
+
+    visualize_topology();
     topology_map_creator::msg::Matrix matrix_msg;
     if (!map_area_msgs_.empty() || !obstacle_area_msgs_.empty())
     {
@@ -86,6 +88,19 @@ private:
   //  Take the topological graph matrix, convert it to vertexs and edges and visualize it
   void visualize_topology()
   {
+    topology_graph_matrix_ = std::make_shared<topology_map_creator::msg::Matrix>();
+    // 设置位置
+    topology_graph_matrix_->position_x = {1.0, 2.0, 3.0, 2.0};
+    topology_graph_matrix_->position_y = {1.0, 2.0, 1.0, 0.0};
+
+    // 设置连接矩阵
+    topology_graph_matrix_->matrix = {
+        0.0, 1.0, 0.0, 1.0, // 点 0 与 点 1 和 点 3 相连
+        1.0, 0.0, 1.0, 0.0, // 点 1 与 点 0 和 点 2 相连
+        0.0, 1.0, 0.0, 1.0, // 点 2 与 点 1 和 点 3 相连
+        1.0, 0.0, 1.0, 0.0  // 点 3 与 点 0 相连
+    };
+
     if (!topology_graph_matrix_)
     {
       RCLCPP_WARN(this->get_logger(), "Topology graph matrix is not initialized!");
@@ -137,16 +152,16 @@ private:
           line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
           line_marker.action = visualization_msgs::msg::Marker::ADD;
           line_marker.scale.x = 0.1; // 线宽
-          line_marker.color.r = 1.0; // 颜色（红色）
+          line_marker.color.r = 0.0; 
           line_marker.color.g = 0.0;
-          line_marker.color.b = 0.0;
+          line_marker.color.b = 1.0;
           line_marker.color.a = 1.0; // 不透明
 
           // 设置起点和终点
           geometry_msgs::msg::Point start_point;
           start_point.x = topology_graph_matrix_->position_x[i];
           start_point.y = topology_graph_matrix_->position_y[i];
-          start_point.z = 0.0; // 如果是2D地图，可以设置为0
+          start_point.z = 0.0; 
 
           geometry_msgs::msg::Point end_point;
           end_point.x = topology_graph_matrix_->position_x[j];
