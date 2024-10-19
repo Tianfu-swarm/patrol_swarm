@@ -121,12 +121,48 @@ private:
     topology_map_vertex_pub_->publish(vertex_marker_array);
 
     // pub topology_map_edge
+    visualization_msgs::msg::MarkerArray edge_marker_array;
+
     for (size_t i = 0; i < topology_graph_matrix_->position_x.size(); ++i)
     {
       for (size_t j = 0; j < topology_graph_matrix_->position_x.size(); ++j)
       {
+        if (topology_graph_matrix_->matrix[i * topology_graph_matrix_->position_x.size() + j] == 1)
+        {
+          visualization_msgs::msg::Marker line_marker;
+          line_marker.header.frame_id = "map"; // 根据你的框架调整
+          line_marker.header.stamp = rclcpp::Time();
+          line_marker.ns = "edges";
+          line_marker.id = edge_marker_array.markers.size(); // 递增的ID
+          line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+          line_marker.action = visualization_msgs::msg::Marker::ADD;
+          line_marker.scale.x = 0.1; // 线宽
+          line_marker.color.r = 1.0; // 颜色（红色）
+          line_marker.color.g = 0.0;
+          line_marker.color.b = 0.0;
+          line_marker.color.a = 1.0; // 不透明
+
+          // 设置起点和终点
+          geometry_msgs::msg::Point start_point;
+          start_point.x = topology_graph_matrix_->position_x[i];
+          start_point.y = topology_graph_matrix_->position_y[i];
+          start_point.z = 0.0; // 如果是2D地图，可以设置为0
+
+          geometry_msgs::msg::Point end_point;
+          end_point.x = topology_graph_matrix_->position_x[j];
+          end_point.y = topology_graph_matrix_->position_y[j];
+          end_point.z = 0.0;
+
+          line_marker.points.push_back(start_point);
+          line_marker.points.push_back(end_point);
+
+          // 将线段添加到MarkerArray中
+          edge_marker_array.markers.push_back(line_marker);
+        }
       }
     }
+
+    topology_map_edge_pub_->publish(edge_marker_array);
   }
 
   rclcpp::Subscription<topology_map_creator::msg::Area2D>::SharedPtr map_area_subscription_;
