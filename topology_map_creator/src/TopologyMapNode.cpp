@@ -5,6 +5,10 @@
 #include "topology_map_creator/msg/matrix.hpp"
 #include "topology_map_creator/msg/obstacle.hpp"
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/Boolean_set_operations_2.h>
+
 class TopologyMap : public rclcpp::Node
 {
 public:
@@ -56,8 +60,6 @@ private:
   // main loop
   void processAndPublish()
   {
-
-    visualize_topology();
     topology_map_creator::msg::Matrix matrix_msg;
     if (!map_area_msgs_.empty() || !obstacle_area_msgs_.empty())
     {
@@ -70,13 +72,38 @@ private:
       RCLCPP_INFO(rclcpp::get_logger("topology_mapping"), "Published topoMapMatrix");
     }
     topology_map_matrix_->publish(matrix_msg);
+
+    visualize_topology();
   }
 
-  // Converting map information and obstacle information into patrol messages
+  // Converting map and obstacle into patrol
   void processPatrolArea()
   {
-    if (!map_area_msgs_.empty())
-    { // The area of the mapArea
+    typedef CGAL::Simple_cartesian<double> K;
+    typedef K::Point_2 Point_2;
+    typedef CGAL::Polygon_2<K> Polygon_2;
+    typedef CGAL::Polygon_with_holes_2<K> Polygon_with_holes_2;
+
+    if (!map_area_msgs_.empty())// The area of the mapArea
+    { 
+      size_t lasted_message = map_area_msgs_.size();
+      Polygon_2 P1, P2;
+
+      for (const auto &point : map_area_msgs_[lasted_message - 1]->points)
+      {
+        P1.push_back(Point_2(point.x, point.y));
+      }
+
+      for (const auto &point : map_area_msgs_[lasted_message - 2]->points)
+      {
+        P2.push_back(Point_2(point.x, point.y));
+      }
+
+      std::vector<Polygon_with_holes_2> result;
+      CGAL::difference(P1, P2, std::back_inserter(result));
+
+    // 计算面积 21/10/2024
+
     }
 
     if (!obstacle_area_msgs_.empty())
@@ -85,6 +112,7 @@ private:
   }
 
   // visualization
+
   //  Take the topological graph matrix, convert it to vertexs and edges and visualize it
   void visualize_topology()
   {
