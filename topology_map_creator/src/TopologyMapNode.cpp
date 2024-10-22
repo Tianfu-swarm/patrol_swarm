@@ -8,6 +8,7 @@
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Polygon_2.h>
 #include <CGAL/Boolean_set_operations_2.h>
+#include <CGAL/Polygon_2_algorithms.h>
 
 class TopologyMap : public rclcpp::Node
 {
@@ -37,6 +38,9 @@ private:
   std::vector<topology_map_creator::msg::Area2D::SharedPtr> patrol_area_msgs_;
   topology_map_creator::msg::Matrix::SharedPtr topology_graph_matrix_;
 
+  bool new_map_area_received_ = false;
+  bool new_obstacle_area_received_ = false;
+
   void mapAreaCallback(const topology_map_creator::msg::Area2D::SharedPtr msg)
   {
     RCLCPP_INFO(this->get_logger(), "Received map area with %zu points", msg->points.size());
@@ -45,6 +49,7 @@ private:
     {
       map_area_msgs_.erase(map_area_msgs_.begin());
     }
+    new_map_area_received_ = true;
   }
 
   void obstacleAreaCallback(const topology_map_creator::msg::Obstacle::SharedPtr msg)
@@ -55,15 +60,27 @@ private:
     {
       obstacle_area_msgs_.erase(obstacle_area_msgs_.begin());
     }
+    new_obstacle_area_received_ = true;
   }
 
   // main loop
   void processAndPublish()
   {
+
+    visualize_topology();
+    if (new_map_area_received_ || new_obstacle_area_received_)
+    {
+      processPatrolArea();
+      topoMapMatrix();
+    }
+  }
+
+  // topoMapMatrix
+  void topoMapMatrix()
+  {
     topology_map_creator::msg::Matrix matrix_msg;
     if (!map_area_msgs_.empty() || !obstacle_area_msgs_.empty())
     {
-      topology_map_creator::msg::Matrix matrix_msg;
 
       // 处理存储的消息并填充地图矩阵
       // 例如：matrix_msg.data = ... (填充矩阵数据)
@@ -71,9 +88,6 @@ private:
       topology_map_matrix_->publish(matrix_msg);
       RCLCPP_INFO(rclcpp::get_logger("topology_mapping"), "Published topoMapMatrix");
     }
-    topology_map_matrix_->publish(matrix_msg);
-
-    visualize_topology();
   }
 
   // Converting map and obstacle into patrol
@@ -83,27 +97,44 @@ private:
     typedef K::Point_2 Point_2;
     typedef CGAL::Polygon_2<K> Polygon_2;
     typedef CGAL::Polygon_with_holes_2<K> Polygon_with_holes_2;
+    std::cout << "ok" << std::endl;
 
-    if (!map_area_msgs_.empty())// The area of the mapArea
-    { 
+    if (!map_area_msgs_.empty()) // The area of the mapArea
+    {
       size_t lasted_message = map_area_msgs_.size();
       Polygon_2 P1, P2;
-
+      std::cout << "1" << std::endl;
       for (const auto &point : map_area_msgs_[lasted_message - 1]->points)
       {
         P1.push_back(Point_2(point.x, point.y));
       }
-
-      for (const auto &point : map_area_msgs_[lasted_message - 2]->points)
+      std::cout << "2" << std::endl;
+      if (lasted_message > 1)
       {
-        P2.push_back(Point_2(point.x, point.y));
+        for (const auto &point : map_area_msgs_[lasted_message - 2]->points)
+        {
+          P2.push_back(Point_2(point.x, point.y));
+        }
       }
+      std::cout << "3" << std::endl;
 
       std::vector<Polygon_with_holes_2> result;
       CGAL::difference(P1, P2, std::back_inserter(result));
+      std::cout << "4" << std::endl;
 
-    // 计算面积 21/10/2024
+      // 计算总面积
+      double total_area = 0.0;
+      for (const auto &poly : result)
+      {
+        total_area += CGAL::to_double(CGAL::polygon_area_2(poly.outer_boundary().vertices_begin(), poly.outer_boundary().vertices_end(), K()));
+        for (const auto &hole : poly.holes())
+        {
+          total_area -= CGAL::to_double(CGAL::polygon_area_2(hole.vertices_begin(), hole.vertices_end(), K()));
+        }
+      }
 
+      // 输出总面积
+      std::cout << "Total area: " << total_area << std::endl;
     }
 
     if (!obstacle_area_msgs_.empty())
@@ -180,7 +211,7 @@ private:
           line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
           line_marker.action = visualization_msgs::msg::Marker::ADD;
           line_marker.scale.x = 0.1; // 线宽
-          line_marker.color.r = 0.0; 
+          line_marker.color.r = 0.0;
           line_marker.color.g = 0.0;
           line_marker.color.b = 1.0;
           line_marker.color.a = 1.0; // 不透明
@@ -189,7 +220,7 @@ private:
           geometry_msgs::msg::Point start_point;
           start_point.x = topology_graph_matrix_->position_x[i];
           start_point.y = topology_graph_matrix_->position_y[i];
-          start_point.z = 0.0; 
+          start_point.z = 0.0;
 
           geometry_msgs::msg::Point end_point;
           end_point.x = topology_graph_matrix_->position_x[j];
