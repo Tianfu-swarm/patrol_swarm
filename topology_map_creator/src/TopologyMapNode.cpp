@@ -372,7 +372,7 @@ private:
           line_marker.color.g = 0.0;
           line_marker.color.b = 0.0;
           line_marker.color.a = 1.0; // 不透明
-                                     // 设置起点和终点
+        
           geometry_msgs::msg::Point start_point;
           geometry_msgs::msg::Point end_point;
 
