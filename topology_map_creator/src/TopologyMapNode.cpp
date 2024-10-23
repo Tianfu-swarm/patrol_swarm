@@ -136,77 +136,61 @@ private:
         }
       }
 
-      std::cout << "Updated patrol map total area is: " << total_area << std::endl;
+      std::cout << "Updated area of map is " << total_area << " m^2" << std::endl;
     }
 
     if (!obstacle_area_msgs_.empty())
     {
       // 声明巡逻区域
-      std::vector<Point_2> patrol_points;
+      std::vector<Polygon_with_holes_2> patrol_area;
+      patrol_area.emplace_back();
       size_t last_message_index = map_area_msgs_.size() - 1;
 
       // 从地图消息中提取巡逻区域的点
       for (const auto &point : map_area_msgs_[last_message_index]->points)
       {
-        patrol_points.push_back(Point_2(point.x, point.y));
+        patrol_area[0].outer_boundary().push_back(Point_2(point.x, point.y));
       }
 
-      // 创建外边界的 Polygon_2
-      Polygon_2 outer_boundary(patrol_points.begin(), patrol_points.end());
-      std::vector<Polygon_with_holes_2> patrol_area; // 将 patrol_area 修改为 vector 类型
-      patrol_area.emplace_back(outer_boundary);      // 创建 patrol_area
-
-      // 获取障碍物消息
       size_t last_obstacle_message_index = obstacle_area_msgs_.size() - 1;
-      const auto &last_obstacle_msg = obstacle_area_msgs_[last_obstacle_message_index];
-
-      // 遍历所有障碍物区域
-      for (const auto &obstacle : last_obstacle_msg->obstacles)
+      for (const auto &obstacle : obstacle_area_msgs_[last_obstacle_message_index]->obstacles)
       {
         Polygon_2 obstacle_area;
-
-        // 将障碍物区域的点转换为 Polygon_2 对象
         for (const auto &point : obstacle.points)
         {
           obstacle_area.push_back(Point_2(point.x, point.y));
         }
 
-        // 计算巡逻区域与障碍物区域的差集
-        std::vector<Polygon_with_holes_2> difference_result;
-        for (const auto &area : patrol_area) // 遍历当前的巡逻区域
-        {
-          CGAL::difference(area, obstacle_area, std::back_inserter(difference_result));
-        }
-
-        // 如果差集结果有效，更新巡逻区域为新的差集结果
-        if (!difference_result.empty())
-        {
-          patrol_area = std::move(difference_result); // 更新巡逻区域为差集结果
-        }
-        else
-        {
-          RCLCPP_WARN(rclcpp::get_logger("PatrolAreaLogger"), "Patrol area is completely covered by obstacles.");
-          // 可以在这里处理完全覆盖的情况
-          break; // 直接跳出循环，因为后续没有意义
-        }
+        CGAL::difference(patrol_area.back(), obstacle_area, std::back_inserter(patrol_area));
       }
 
-      // 计算更新后的巡逻区域的面积
-      double total_area = 0.0;
-      for (const auto &poly : patrol_area)
+      if (!patrol_area.empty())
       {
-        total_area += CGAL::to_double(CGAL::polygon_area_2(poly.outer_boundary().vertices_begin(), poly.outer_boundary().vertices_end(), K()));
-        for (const auto &hole : poly.holes())
+        double total_area = 0.0;
+
+        const auto &last_poly = patrol_area.back();
+
+        total_area += CGAL::to_double(CGAL::polygon_area_2(last_poly.outer_boundary().vertices_begin(),
+                                                           last_poly.outer_boundary().vertices_end(), K()));
+
+        for (const auto &hole : last_poly.holes())
         {
           total_area -= CGAL::to_double(CGAL::polygon_area_2(hole.vertices_begin(), hole.vertices_end(), K()));
         }
-      }
 
-      std::cout << "Patrol area is: " << total_area << std::endl;
+        std::cout << "Area of the patrol is " << total_area << " m^2" << std::endl;
+      }
+      else
+      {
+        std::cout << "patrol_area is empty." << std::endl;
+      }
     }
   }
 
-  //***************************** visualization****************************/
+  ////***********************************************************************//
+  ///***************************** visualization****************************///
+  //***********************************************************************////
+
   void visualization()
   {
     visualize_topology_map();
@@ -323,7 +307,7 @@ private:
         line_marker.id = map_area_marker_array.markers.size();
         line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
         line_marker.action = visualization_msgs::msg::Marker::ADD;
-        line_marker.scale.x = 0.05; // 线宽
+        line_marker.scale.x = 0.1; // 线宽
         line_marker.color.r = 0.0;
         line_marker.color.g = 0.0;
         line_marker.color.b = 0.0;
@@ -383,7 +367,7 @@ private:
           line_marker.id = obstacle_area_marker_array.markers.size();
           line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
           line_marker.action = visualization_msgs::msg::Marker::ADD;
-          line_marker.scale.x = 0.05; // 线宽
+          line_marker.scale.x = 0.02; // 线宽
           line_marker.color.r = 0.0;
           line_marker.color.g = 0.0;
           line_marker.color.b = 0.0;
