@@ -71,14 +71,12 @@ private:
   void processAndPublish()
   {
 
-    visualize_topology_map();
-    visualize_map_area();
+    visualization();
     if (new_map_area_received_ || new_obstacle_area_received_)
     {
       std::cout << "new message" << std::endl;
       processPatrolArea();
       topoMapMatrix();
-      
     }
     new_map_area_received_ = false;
     new_obstacle_area_received_ = false;
@@ -209,6 +207,12 @@ private:
   }
 
   //***************************** visualization****************************/
+  void visualization()
+  {
+    visualize_topology_map();
+    visualize_map_area();
+    visualize_obstacle_area();
+  }
   //  Take the topological graph matrix, convert it to vertexs and edges and visualize it
   void visualize_topology_map()
   {
@@ -316,7 +320,7 @@ private:
         line_marker.header.frame_id = "map";
         line_marker.header.stamp = rclcpp::Time();
         line_marker.ns = "edges";
-        line_marker.id = map_area_marker_array.markers.size(); // 递增的ID
+        line_marker.id = map_area_marker_array.markers.size();
         line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
         line_marker.action = visualization_msgs::msg::Marker::ADD;
         line_marker.scale.x = 0.05; // 线宽
@@ -357,6 +361,65 @@ private:
       }
 
       map_area_edge_pub_->publish(map_area_marker_array);
+    }
+  }
+
+  void visualize_obstacle_area()
+  {
+    if (!obstacle_area_msgs_.empty())
+    {
+      visualization_msgs::msg::MarkerArray obstacle_area_marker_array;
+      size_t last_message_index = obstacle_area_msgs_.size() - 1;
+
+      for (size_t i = 0; i < obstacle_area_msgs_[last_message_index]->obstacles.size(); i++)
+      {
+        const auto &obstacle = obstacle_area_msgs_[last_message_index]->obstacles[i];
+        for (size_t j = 0; j < obstacle.points.size(); j++)
+        {
+          visualization_msgs::msg::Marker line_marker;
+          line_marker.header.frame_id = "map";
+          line_marker.header.stamp = rclcpp::Time();
+          line_marker.ns = "edges";
+          line_marker.id = obstacle_area_marker_array.markers.size();
+          line_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+          line_marker.action = visualization_msgs::msg::Marker::ADD;
+          line_marker.scale.x = 0.05; // 线宽
+          line_marker.color.r = 0.0;
+          line_marker.color.g = 0.0;
+          line_marker.color.b = 0.0;
+          line_marker.color.a = 1.0; // 不透明
+                                     // 设置起点和终点
+          geometry_msgs::msg::Point start_point;
+          geometry_msgs::msg::Point end_point;
+
+          if (j != obstacle.points.size() - 1)
+          {
+            start_point.x = obstacle.points[j].x;
+            start_point.y = obstacle.points[j].y;
+            start_point.z = 0.0;
+
+            end_point.x = obstacle.points[j + 1].x;
+            end_point.y = obstacle.points[j + 1].y;
+            end_point.z = 0.0;
+          }
+          else
+          {
+            start_point.x = obstacle.points[j].x;
+            start_point.y = obstacle.points[j].y;
+            start_point.z = 0.0;
+
+            end_point.x = obstacle.points[0].x;
+            end_point.y = obstacle.points[0].y;
+            end_point.z = 0.0;
+          }
+          line_marker.points.push_back(start_point);
+          line_marker.points.push_back(end_point);
+
+          // 将线段添加到MarkerArray中
+          obstacle_area_marker_array.markers.push_back(line_marker);
+        }
+      }
+      obstacle_area_edge_pub_->publish(obstacle_area_marker_array);
     }
   }
 
